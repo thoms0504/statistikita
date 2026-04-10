@@ -1,42 +1,55 @@
 import os
 import logging
-from flask import current_app
 
 logger = logging.getLogger(__name__)
 
-_chroma_client = None
-_collection = None
-_embeddings = None
+_pinecone_client = None
+_index = None
 
-COLLECTION_NAME = "statistikita_docs"
-
-
-def _get_embeddings():
-    global _embeddings
-    if _embeddings is None:
-        from langchain_huggingface import HuggingFaceEmbeddings
-        _embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-        )
-    return _embeddings
+PINECONE_INDEX_NAME = os.environ.get("PINECONE_INDEX_NAME", "statistikita")
+EMBEDDING_MODEL = "multilingual-e5-large"
 
 
-def _get_collection():
-    global _chroma_client, _collection
-    if _collection is None:
-        import chromadb
-        chroma_path = current_app.config['CHROMA_DB_PATH']
-        os.makedirs(chroma_path, exist_ok=True)
-        _chroma_client = chromadb.PersistentClient(path=chroma_path)
-        _collection = _chroma_client.get_or_create_collection(
-            name=COLLECTION_NAME,
-            metadata={"hnsw:space": "cosine"}
-        )
-    return _collection
+def _get_client():
+    global _pinecone_client
+    if _pinecone_client is None:
+        from pinecone import Pinecone
+        _pinecone_client = Pinecone(api_key=os.environ.get("PINECONE_API_KEY"))
+    return _pinecone_client
+
+
+def _get_index():
+    global _index
+    if _index is None:
+        pc = _get_client()
+        _index = pc.Index(PINECONE_INDEX_NAME)
+    return _index
+
+
+def _embed_texts(texts: list[str]) -> list[list[float]]:
+    """Embed teks menggunakan Pinecone Inference API."""
+    pc = _get_client()
+    result = pc.inference.embed(
+        model=EMBEDDING_MODEL,
+        inputs=texts,
+        parameters={"input_type": "passage", "truncate": "END"}
+    )
+    return [item["values"] for item in result]
+
+
+def _embed_query(query: str) -> list[float]:
+    """Embed query untuk search."""
+    pc = _get_client()
+    result = pc.inference.embed(
+        model=EMBEDDING_MODEL,
+        inputs=[query],
+        parameters={"input_type": "query", "truncate": "END"}
+    )
+    return result[0]["values"]
 
 
 def ingest_pdf(filepath: str, filename: str, progress_cb=None) -> int:
-    """Load PDF, split into chunks, embed, and store in ChromaDB. Returns chunk count."""
+    """Load PDF, split, embed via Pinecone Inference, store ke Pinecone."""
     try:
         from langchain_community.document_loaders import PyPDFLoader
         from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -67,29 +80,35 @@ def ingest_pdf(filepath: str, filename: str, progress_cb=None) -> int:
 
         report(20, f"Membagi dokumen ({len(chunks)} bagian)")
 
-        embeddings = _get_embeddings()
-        collection = _get_collection()
+        index = _get_index()
 
         texts = [chunk.page_content for chunk in chunks]
-        metadatas = [{"source": filename, "page": chunk.metadata.get("page", 0)} for chunk in chunks]
+        metadatas = [
+            {
+                "source": filename,
+                "page": chunk.metadata.get("page", 0),
+                "text": chunk.page_content
+            }
+            for chunk in chunks
+        ]
         ids = [f"{filename}_chunk_{i}" for i in range(len(chunks))]
 
         total = len(chunks)
         done = 0
+
         for i in range(0, total, batch_size):
             batch_texts = texts[i:i + batch_size]
             batch_metas = metadatas[i:i + batch_size]
             batch_ids = ids[i:i + batch_size]
 
-            # Embed batch
-            embeds = embeddings.embed_documents(batch_texts)
+            # Embed via Pinecone Inference API
+            embeds = _embed_texts(batch_texts)
 
-            collection.upsert(
-                ids=batch_ids,
-                embeddings=embeds,
-                documents=batch_texts,
-                metadatas=batch_metas
-            )
+            vectors = [
+                {"id": bid, "values": emb, "metadata": meta}
+                for bid, emb, meta in zip(batch_ids, embeds, batch_metas)
+            ]
+            index.upsert(vectors=vectors)
 
             done += len(batch_texts)
             percent = 20 + int(70 * done / total)
@@ -107,30 +126,28 @@ def ingest_pdf(filepath: str, filename: str, progress_cb=None) -> int:
 
 
 def retrieve_context(query: str, k: int = 5) -> str:
-    """Semantic search from ChromaDB, returns concatenated context."""
+    """Semantic search dari Pinecone, returns concatenated context."""
     try:
-        embeddings = _get_embeddings()
-        collection = _get_collection()
+        index = _get_index()
 
-        if collection.count() == 0:
-            return ""
+        query_embedding = _embed_query(query)
 
-        query_embedding = embeddings.embed_query(query)
-
-        results = collection.query(
-            query_embeddings=[query_embedding],
-            n_results=min(k, collection.count()),
-            include=["documents", "metadatas"]
+        results = index.query(
+            vector=query_embedding,
+            top_k=k,
+            include_metadata=True
         )
 
-        if not results['documents'] or not results['documents'][0]:
+        if not results.matches:
             return ""
 
         context_parts = []
-        for doc, meta in zip(results['documents'][0], results['metadatas'][0]):
+        for match in results.matches:
+            meta = match.metadata
             source = meta.get('source', 'unknown')
             page = meta.get('page', 0)
-            context_parts.append(f"[Sumber: {source}, Halaman: {page+1}]\n{doc}")
+            text = meta.get('text', '')
+            context_parts.append(f"[Sumber: {source}, Halaman: {page+1}]\n{text}")
 
         return "\n\n---\n\n".join(context_parts)
 
@@ -140,14 +157,26 @@ def retrieve_context(query: str, k: int = 5) -> str:
 
 
 def delete_pdf_from_store(filename: str) -> bool:
-    """Delete all chunks of a PDF from ChromaDB."""
+    """Hapus semua chunks PDF dari Pinecone berdasarkan filename."""
     try:
-        collection = _get_collection()
-        results = collection.get(where={"source": filename})
-        if results['ids']:
-            collection.delete(ids=results['ids'])
-            logger.info(f"Deleted {len(results['ids'])} chunks for {filename}")
+        index = _get_index()
+
+        # Fetch semua ID dengan filter metadata source
+        query_embed = _embed_query(filename)
+        results = index.query(
+            vector=query_embed,
+            top_k=10000,
+            include_metadata=True,
+            filter={"source": {"$eq": filename}}
+        )
+
+        ids_to_delete = [match.id for match in results.matches]
+        if ids_to_delete:
+            index.delete(ids=ids_to_delete)
+            logger.info(f"Deleted {len(ids_to_delete)} chunks for {filename}")
+
         return True
+
     except Exception as e:
         logger.error(f"Error deleting PDF {filename} from store: {e}")
         return False

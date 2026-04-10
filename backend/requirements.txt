@@ -11,13 +11,12 @@ bcrypt
 requests
 langchain
 langchain-community
-langchain-huggingface
-chromadb
+pinecone-client>=3.0.0
 pypdf
-sentence-transformers
 Authlib
 pytest
 pytest-flask
 eventlet
 python-multipart
 Werkzeug
+gunicorn
