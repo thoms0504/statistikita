@@ -3,7 +3,7 @@ Flask-SQLAlchemy
 Flask-Migrate
 Flask-CORS
 Flask-SocketIO
-psycopg2-binary
+psycopg2cffi
 cryptography
 python-dotenv
 PyJWT

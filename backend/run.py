@@ -1,6 +1,9 @@
 import eventlet
 eventlet.monkey_patch()
 
+import warnings
+warnings.filterwarnings("ignore", message=".*RLock.*greened.*")
+
 import os
 from app import create_app, socketio
 
