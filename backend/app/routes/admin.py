@@ -68,39 +68,78 @@ def upload_pdf():
     filepath = os.path.join(upload_dir, filename)
     file.save(filepath)
 
-    def progress_cb(percent: int, stage: str):
-        emit_event(
-            request.current_user.id,
-            'pdf_progress',
-            {
+    # Capture values needed inside background thread
+    user_id   = request.current_user.id
+    app       = current_app._get_current_object()
+
+    def _ingest_in_background():
+        """Jalankan di background thread agar request tidak timeout."""
+        def progress_cb(percent: int, stage: str):
+            emit_event(user_id, 'pdf_progress', {
                 'upload_id': upload_id,
                 'percent': percent,
                 'stage': stage,
                 'original_name': original_name,
-            }
-        )
+            })
 
-    # Ingest to ChromaDB
+        with app.app_context():
+            try:
+                progress_cb(5, "Mempersiapkan proses")
+                chunk_count = rag_service.ingest_pdf(filepath, filename, progress_cb=progress_cb)
+
+                # Simpan record ke DB setelah berhasil
+                pdf_record = PDFFile(
+                    filename=filename,
+                    original_name=original_name,
+                    uploaded_by=user_id,
+                )
+                db.session.add(pdf_record)
+                db.session.commit()
+
+                # Kirim notifikasi selesai via SocketIO
+                emit_event(user_id, 'pdf_progress', {
+                    'upload_id': upload_id,
+                    'percent': 100,
+                    'stage': f'Selesai! {chunk_count} bagian tersimpan di Pinecone',
+                    'original_name': original_name,
+                    'done': True,
+                    'pdf': pdf_record.to_dict(),
+                })
+
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"Background ingest error [{filename}]: {e}")
+                # Hapus file jika gagal
+                if os.path.exists(filepath):
+                    os.remove(filepath)
+                # Kirim error ke frontend via SocketIO
+                emit_event(user_id, 'pdf_progress', {
+                    'upload_id': upload_id,
+                    'percent': -1,
+                    'stage': f'Gagal: {str(e)}',
+                    'original_name': original_name,
+                    'done': True,
+                    'error': str(e),
+                })
+
+    # Jalankan di background (non-blocking) menggunakan eventlet
     try:
-        progress_cb(10, "Mengunggah file")
-        chunk_count = rag_service.ingest_pdf(filepath, filename, progress_cb=progress_cb)
-    except Exception as e:
-        os.remove(filepath)
-        return jsonify({'error': f'Gagal memproses PDF: {str(e)}'}), 500
+        import eventlet
+        eventlet.spawn(_ingest_in_background)
+    except ImportError:
+        # Fallback: threading standar
+        import threading
+        t = threading.Thread(target=_ingest_in_background, daemon=True)
+        t.start()
 
-    pdf_record = PDFFile(
-        filename=filename,
-        original_name=original_name,
-        uploaded_by=request.current_user.id
-    )
-    db.session.add(pdf_record)
-    db.session.commit()
-
+    # Return 202 Accepted langsung — proses berjalan di background
     return jsonify({
-        'message': f'PDF berhasil diupload dan diproses ({chunk_count} bagian)',
-        'pdf': pdf_record.to_dict(),
+        'message': 'PDF diterima dan sedang diproses di background. Progress akan muncul via notifikasi.',
         'upload_id': upload_id,
-    }), 201
+        'filename': filename,
+        'original_name': original_name,
+    }), 202
+
 
 
 @admin_bp.route('/pdfs/<int:pdf_id>', methods=['DELETE'])

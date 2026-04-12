@@ -21,16 +21,38 @@ export default function PDFUploader({ onUploaded }: PDFUploaderProps) {
 
   useEffect(() => {
     const socket = getSocket();
-    const handler = (payload: { upload_id?: string; percent?: number; stage?: string; original_name?: string }) => {
+    const handler = (payload: {
+      upload_id?: string;
+      percent?: number;
+      stage?: string;
+      original_name?: string;
+      done?: boolean;
+      error?: string;
+    }) => {
       if (!payload?.upload_id || payload.upload_id !== uploadId) return;
-      if (typeof payload.percent === 'number') setProcessPercent(payload.percent);
+      if (typeof payload.percent === 'number') setProcessPercent(Math.max(0, payload.percent));
       if (payload.stage) setStage(payload.stage);
+
+      if (payload.done) {
+        if (payload.error) {
+          // Proses gagal
+          toast.error(`Gagal: ${payload.error}`);
+          setProcessPercent(0);
+          setStage('');
+        } else {
+          // Proses berhasil
+          toast.success('PDF berhasil diproses dan tersimpan di Pinecone! ✅');
+          setProcessPercent(100);
+          onUploaded(); // refresh daftar PDF
+        }
+        setUploading(false);
+        setUploadId(null);
+      }
     };
     socket.on('pdf_progress', handler);
-    return () => {
-      socket.off('pdf_progress', handler);
-    };
-  }, [uploadId]);
+    return () => { socket.off('pdf_progress', handler); };
+  }, [uploadId, onUploaded]);
+
 
   const onDrop = useCallback((accepted: File[]) => {
     if (accepted[0]) setFile(accepted[0]);
@@ -48,7 +70,7 @@ export default function PDFUploader({ onUploaded }: PDFUploaderProps) {
     setUploading(true);
     setUploadPercent(0);
     setProcessPercent(0);
-    setStage('Mengunggah file');
+    setStage('Mengunggah file...');
     const newUploadId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     setUploadId(newUploadId);
     try {
@@ -63,16 +85,28 @@ export default function PDFUploader({ onUploaded }: PDFUploaderProps) {
           setUploadPercent(percent);
         }
       });
-      toast.success(res.data.message);
-      setFile(null);
-      setStage('Selesai');
-      onUploaded();
+
+      if (res.status === 202) {
+        // Background mode: proses berjalan di server, tunggu SocketIO
+        setStage('File diterima — sedang diproses di server...');
+        setProcessPercent(5);
+        toast.success('PDF diterima! Sedang diproses di background...');
+        setFile(null);
+        // uploading tetap true sampai SocketIO kirim done:true
+      } else {
+        // Sync mode (fallback 201)
+        toast.success(res.data.message);
+        setFile(null);
+        setStage('Selesai');
+        setUploading(false);
+        onUploaded();
+      }
     } catch (err: any) {
       toast.error(err.response?.data?.error || 'Gagal mengupload PDF');
-    } finally {
       setUploading(false);
     }
   };
+
 
   return (
     <div className="space-y-3">
