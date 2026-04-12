@@ -104,8 +104,17 @@ export function AdminLineChart({ data, title, xKey = 'date', height = 220, lines
 }
 
 // Word Cloud
+interface CloudWord {
+  text: string;
+  value: number;
+  x?: number;
+  y?: number;
+  rotate?: number;
+  size?: number;
+}
+
 interface WordCloudProps {
-  words: { text: string; value: number }[];
+  words: CloudWord[];
   title: string;
 }
 
@@ -123,7 +132,7 @@ export function AdminWordCloud({ words, title }: WordCloudProps) {
 
     const maxVal = Math.max(...words.map(w => w.value), 1);
 
-    const layout = cloud<{ text: string; value: number }>()
+    const layout = cloud<CloudWord>()
       .size([WIDTH, HEIGHT])
       .words(words.map(w => ({ ...w })))
       .padding(4)
