@@ -12,7 +12,7 @@ requests
 langchain
 langchain-community
 langchain-text-splitters
-pinecone-client>=3.0.0
+pinecone>=3.0.0
 pypdf
 Authlib
 pytest
