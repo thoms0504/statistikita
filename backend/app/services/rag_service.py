@@ -52,7 +52,10 @@ def ingest_pdf(filepath: str, filename: str, progress_cb=None) -> int:
     """Load PDF, split, embed via Pinecone Inference, store ke Pinecone."""
     try:
         from langchain_community.document_loaders import PyPDFLoader
-        from langchain.text_splitter import RecursiveCharacterTextSplitter
+        try:
+            from langchain_text_splitters import RecursiveCharacterTextSplitter
+        except ImportError:
+            from langchain.text_splitter import RecursiveCharacterTextSplitter  # noqa: fallback
         batch_size = 32
 
         def report(percent: int, stage: str):
