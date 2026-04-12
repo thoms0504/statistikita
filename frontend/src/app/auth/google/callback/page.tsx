@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 import { BarChart2 } from 'lucide-react';
 
-export default function GoogleCallbackPage() {
+function GoogleCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -28,6 +28,10 @@ export default function GoogleCallbackPage() {
       });
   }, []);
 
+  return null;
+}
+
+export default function GoogleCallbackPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-bps-blue to-blue-800 flex items-center justify-center">
       <div className="bg-white rounded-2xl p-8 text-center shadow-2xl">
@@ -35,6 +39,9 @@ export default function GoogleCallbackPage() {
         <p className="text-gray-700 font-medium">Memproses login Google...</p>
         <p className="text-gray-400 text-sm mt-1">Harap tunggu sebentar</p>
       </div>
+      <Suspense fallback={null}>
+        <GoogleCallbackInner />
+      </Suspense>
     </div>
   );
 }

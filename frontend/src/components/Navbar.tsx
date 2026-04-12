@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
@@ -9,13 +9,24 @@ import { Menu, X, BarChart2, MessageCircle, LogOut, User, ChevronDown } from 'lu
 import { UserAvatar } from './TagBadge';
 import ThemeToggle from './ThemeToggle';
 
-export default function Navbar() {
-  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+// Komponen terpisah yang membaca searchParams, dibungkus Suspense
+function NavbarReturnTo({ onReady }: { onReady: (returnTo: string) => void }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const qs = searchParams?.toString();
+  const returnTo = `${pathname}${qs ? `?${qs}` : ''}`;
+  // pass via callback pada render pertama
+  onReady(returnTo);
+  return null;
+}
+
+function NavbarInner() {
+  const { user, isAuthenticated, isAdmin, logout } = useAuth();
+  const pathname = usePathname();
   const router = useRouter();
   const [menuOpen, setMenuOpen] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [returnTo, setReturnTo] = useState('/');
 
   const handleLogout = async () => {
     await logout();
@@ -25,13 +36,13 @@ export default function Navbar() {
   const isActive = (path: string) =>
     pathname === path || pathname.startsWith(path + '/');
 
-  const returnTo = (() => {
-    const qs = searchParams?.toString();
-    return `${pathname}${qs ? `?${qs}` : ''}`;
-  })();
-
   return (
     <>
+      {/* Baca searchParams di sini — sudah aman karena dibungkus Suspense di Navbar() */}
+      <Suspense fallback={null}>
+        <NavbarReturnTo onReady={setReturnTo} />
+      </Suspense>
+
       <nav className="fixed top-4 left-0 right-0 z-50 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
           <div className="bg-gradient-to-r from-bps-blue via-blue-900 to-slate-900/95 shadow-xl border border-white/10 rounded-2xl px-4 sm:px-6 lg:px-8">
@@ -156,6 +167,10 @@ export default function Navbar() {
       <div className="nav-spacer" aria-hidden="true" />
     </>
   );
+}
+
+export default function Navbar() {
+  return <NavbarInner />;
 }
 
 function NavLink({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {

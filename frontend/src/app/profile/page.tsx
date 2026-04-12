@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { BarChart2, UploadCloud, X } from 'lucide-react';
@@ -8,15 +8,24 @@ import { authAPI } from '@/lib/api';
 import { useAuth } from '@/hooks/useAuth';
 import toast from 'react-hot-toast';
 
-export default function ProfilePage() {
-  const router = useRouter();
+// Komponen kecil yang membaca searchParams dan meneruskan nilai melalui callback
+function SearchParamsReader({ onFrom }: { onFrom: (from: string | null) => void }) {
   const searchParams = useSearchParams();
+  useEffect(() => {
+    onFrom(searchParams.get('from'));
+  }, [searchParams]);
+  return null;
+}
+
+function ProfileContent() {
+  const router = useRouter();
   const { user, isLoading, isAuthenticated, refreshUser } = useAuth();
   const [form, setForm] = useState({ nama_lengkap: '', username: '', email: '', jenis_kelamin: '' });
   const [photo, setPhoto] = useState<File | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [storedPreview, setStoredPreview] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [fromParam, setFromParam] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const baseUrl = useMemo(() => process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000', []);
@@ -87,9 +96,8 @@ export default function ProfilePage() {
       await refreshUser();
       setPhoto(null);
       toast.success('Profil berhasil diperbarui');
-      const from = searchParams?.get('from');
-      if (from && from.startsWith('/')) {
-        router.push(from);
+      if (fromParam && fromParam.startsWith('/')) {
+        router.push(fromParam);
       } else {
         router.push('/profile');
       }
@@ -102,6 +110,10 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-bps-blue to-blue-800 flex items-center justify-center p-4">
+      {/* Baca searchParams di sini, aman karena dibungkus Suspense di parent */}
+      <Suspense fallback={null}>
+        <SearchParamsReader onFrom={setFromParam} />
+      </Suspense>
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
         <div className="text-center mb-7">
           <Link href="/" className="inline-flex items-center gap-2 mb-4">
@@ -192,4 +204,8 @@ export default function ProfilePage() {
       </div>
     </div>
   );
+}
+
+export default function ProfilePage() {
+  return <ProfileContent />;
 }
