@@ -20,3 +20,4 @@ eventlet
 python-multipart
 Werkzeug
 gunicorn
+psycopg2-binary
