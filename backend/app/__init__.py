@@ -27,8 +27,20 @@ def create_app(config_name: str = None) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
 
-    CORS(app, resources={r"/api/*": {"origins": app.config['FRONTEND_URL']}},
-         supports_credentials=True)
+    # Build list of allowed CORS origins from FRONTEND_URL (supports comma-separated)
+    raw_origins = app.config.get('FRONTEND_URL', 'http://localhost:3000')
+    allowed_origins = [o.strip() for o in raw_origins.split(',') if o.strip()]
+    # Always also allow localhost for local dev
+    for local in ['http://localhost:3000', 'http://127.0.0.1:3000']:
+        if local not in allowed_origins:
+            allowed_origins.append(local)
+
+    CORS(app,
+         resources={r"/api/*": {"origins": allowed_origins},
+                    r"/uploads/*": {"origins": allowed_origins}},
+         supports_credentials=True,
+         allow_headers=['Content-Type', 'Authorization'],
+         methods=['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'])
 
     socketio.init_app(
         app,
