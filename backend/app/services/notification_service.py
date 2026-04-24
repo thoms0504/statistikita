@@ -45,3 +45,12 @@ def emit_event(user_id: int, event: str, payload: dict):
             _socketio.emit(event, payload, room=f'user_{user_id}')
     except Exception as e:
         logger.error(f"Error emitting event {event} to user {user_id}: {e}")
+
+
+def emit_room_event(room: str, event: str, payload: dict):
+    """Emit Socket.IO event to an arbitrary room without persisting to DB."""
+    try:
+        if _socketio:
+            _socketio.emit(event, payload, room=room)
+    except Exception as e:
+        logger.error(f"Error emitting event {event} to room {room}: {e}")

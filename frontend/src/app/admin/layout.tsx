@@ -21,6 +21,13 @@ const navItems = [
     ],
   },
   {
+    group: 'Chat Realtime',
+    icon: MessageSquare,
+    items: [
+      { label: 'Inbox User', href: '/admin/support' },
+    ],
+  },
+  {
     group: 'Forum',
     icon: Users,
     items: [

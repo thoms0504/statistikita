@@ -28,6 +28,8 @@ def register_socket_events(socketio):
             if user and user.is_active:
                 room = f'user_{user_id}'
                 join_room(room)
+                if user.role == 'admin':
+                    join_room('admins')
                 logger.info(f"User {user_id} joined room {room}")
         except Exception as e:
             logger.warning(f"Invalid token on join: {e}")

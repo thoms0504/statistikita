@@ -33,10 +33,11 @@ class Config:
     PDF_UPLOAD_FOLDER = os.path.join(BASE_DIR, 'pdfs')
     AVATAR_UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads', 'avatars')
     CHROMA_DB_PATH = os.path.join(BASE_DIR, 'chroma_db')
-    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB
+    MAX_PDF_SIZE = int(os.environ.get('MAX_PDF_SIZE', 20 * 1024 * 1024))  # 20MB
+    _configured_max_content_length = int(os.environ.get('MAX_CONTENT_LENGTH', 0) or 0)
+    MAX_CONTENT_LENGTH = max(_configured_max_content_length, MAX_PDF_SIZE + 2 * 1024 * 1024)  # multipart buffer
     MAX_AVATAR_SIZE = int(os.environ.get('MAX_AVATAR_SIZE', 2 * 1024 * 1024))  # 2MB
     MAX_FORUM_FILE_SIZE = int(os.environ.get('MAX_FORUM_FILE_SIZE', 10 * 1024 * 1024))  # 10MB
-    MAX_PDF_SIZE = int(os.environ.get('MAX_PDF_SIZE', 20 * 1024 * 1024))  # 20MB
     MAX_CHAT_MESSAGE_LENGTH = int(os.environ.get('MAX_CHAT_MESSAGE_LENGTH', 2000))
 
     SOCKETIO_CORS_ALLOWED_ORIGINS = [
@@ -44,6 +45,7 @@ class Config:
         for o in os.environ.get('FRONTEND_URL', 'http://localhost:3000').split(',')
         if o.strip()
     ] + ['http://localhost:3000', 'http://127.0.0.1:3000']
+    SOCKETIO_ASYNC_MODE = os.environ.get('SOCKETIO_ASYNC_MODE', 'eventlet')
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -54,7 +56,9 @@ class ProductionConfig(Config):
 class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
+    SQLALCHEMY_ENGINE_OPTIONS = {}
     JWT_SECRET_KEY = 'test-jwt-secret'
+    SOCKETIO_ASYNC_MODE = 'threading'
 
 config = {
     'development': DevelopmentConfig,

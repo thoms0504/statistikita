@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import NotificationBell from './NotificationBell';
-import { Menu, X, BarChart2, MessageCircle, LogOut, User, ChevronDown } from 'lucide-react';
+import { Menu, X, BarChart2, MessageCircle, LogOut, User, ChevronDown, LifeBuoy } from 'lucide-react';
 import { UserAvatar } from './TagBadge';
 import ThemeToggle from './ThemeToggle';
 
@@ -65,6 +65,11 @@ function NavbarInner() {
             {isAuthenticated && (
               <NavLink href="/chat" active={isActive('/chat')}>
                 <MessageCircle className="w-4 h-4 mr-1 inline" />Chatbot
+              </NavLink>
+            )}
+            {isAuthenticated && (
+              <NavLink href="/support" active={isActive('/support')}>
+                <LifeBuoy className="w-4 h-4 mr-1 inline" />Chat Admin
               </NavLink>
             )}
             {isAdmin && (
@@ -137,6 +142,9 @@ function NavbarInner() {
           <MobileLink href="/forum" onClick={() => setMenuOpen(false)}>Forum</MobileLink>
           {isAuthenticated && (
             <MobileLink href="/chat" onClick={() => setMenuOpen(false)}>Chatbot</MobileLink>
+          )}
+          {isAuthenticated && (
+            <MobileLink href="/support" onClick={() => setMenuOpen(false)}>Chat Admin</MobileLink>
           )}
           {isAdmin && (
             <MobileLink href="/admin" onClick={() => setMenuOpen(false)}>Admin</MobileLink>

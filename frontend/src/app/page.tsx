@@ -4,6 +4,7 @@ import {
   MessageCircle,
   MessageSquare,
   Users,
+  LifeBuoy,
   BookOpen,
   ArrowRight,
   CheckCircle,
@@ -61,7 +62,8 @@ export default async function HomePage() {
             </h1>
             <p className="text-slate-600 text-lg mt-4 max-w-xl">
               Akses statistik resmi dan diskusi komunitas dalam satu platform. Chatbot cerdas membantu
-              menemukan data, sementara forum mempertemukan pertanyaan dan jawaban terbaik.
+              menemukan data, forum mempertemukan pertanyaan dan jawaban terbaik, dan chat admin
+              memberi jalur bantuan langsung saat Anda butuh pendampingan.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 mt-8">
               <Link
@@ -75,6 +77,12 @@ export default async function HomePage() {
                 className="btn-secondary px-7 py-3 text-base flex items-center gap-2 justify-center"
               >
                 <Users className="w-5 h-5" /> Lihat Forum
+              </Link>
+              <Link
+                href="/support"
+                className="px-7 py-3 text-base flex items-center gap-2 justify-center rounded-xl bg-emerald-600 text-white hover:bg-emerald-700 transition-colors"
+              >
+                <LifeBuoy className="w-5 h-5" /> Chat Admin
               </Link>
             </div>
             <div className="flex flex-wrap gap-3 mt-6 text-xs text-slate-500">
@@ -163,10 +171,10 @@ export default async function HomePage() {
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold text-slate-900 mb-3">Fitur Utama</h2>
           <p className="text-slate-500 max-w-xl mx-auto">
-            Dua layanan inti yang dirancang agar pengguna cepat menemukan data statistik yang relevan.
+            Tiga layanan inti yang dirancang agar pengguna cepat menemukan data statistik yang relevan.
           </p>
         </div>
-        <div className="grid md:grid-cols-2 gap-6">
+        <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
           <FeatureCard
             icon={<MessageCircle className="w-8 h-8 text-blue-600" />}
             title="Chatbot Statistik AI"
@@ -183,6 +191,15 @@ export default async function HomePage() {
             href="/forum"
             cta="Mulai Diskusi"
             variant="green"
+          />
+          <FeatureCard
+            icon={<LifeBuoy className="w-8 h-8 text-teal-600" />}
+            title="Chat Admin Realtime"
+            description="Hubungi admin StatistiKita secara langsung saat Anda butuh bantuan layanan yang lebih personal."
+            features={['Balasan admin secara realtime', 'Cocok untuk kendala penggunaan', 'Terpisah dari chatbot AI']}
+            href="/support"
+            cta="Hubungi Admin"
+            variant="teal"
           />
         </div>
       </section>
@@ -256,8 +273,14 @@ export default async function HomePage() {
 function FeatureCard({ icon, title, description, features, href, cta, variant = 'blue' }: any) {
   const accent = variant === 'green'
     ? 'from-emerald-50 via-white to-emerald-100'
+    : variant === 'teal'
+      ? 'from-teal-50 via-white to-cyan-100'
     : 'from-blue-50 via-white to-blue-100';
-  const btnClass = variant === 'green' ? 'bg-emerald-600 hover:bg-emerald-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white';
+  const btnClass = variant === 'green'
+    ? 'bg-emerald-600 hover:bg-emerald-700 text-white'
+    : variant === 'teal'
+      ? 'bg-teal-600 hover:bg-teal-700 text-white'
+    : 'bg-blue-600 hover:bg-blue-700 text-white';
   return (
     <div className="card card-hover p-7 flex flex-col">
       <div className={`inline-flex w-14 h-14 rounded-2xl items-center justify-center mb-4 bg-gradient-to-br ${accent}`}>

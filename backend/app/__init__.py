@@ -18,6 +18,12 @@ def create_app(config_name: str = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(config.get(config_name, config['default']))
 
+    if app.config['SQLALCHEMY_DATABASE_URI'].startswith('sqlite'):
+        engine_options = dict(app.config.get('SQLALCHEMY_ENGINE_OPTIONS', {}))
+        engine_options.pop('pool_size', None)
+        engine_options.pop('max_overflow', None)
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_options
+
     # Ensure upload directories exist
     os.makedirs(app.config['PDF_UPLOAD_FOLDER'], exist_ok=True)
     os.makedirs(app.config['CHROMA_DB_PATH'], exist_ok=True)
@@ -45,7 +51,7 @@ def create_app(config_name: str = None) -> Flask:
     socketio.init_app(
         app,
         cors_allowed_origins=app.config['SOCKETIO_CORS_ALLOWED_ORIGINS'],
-        async_mode='eventlet',
+        async_mode=app.config.get('SOCKETIO_ASYNC_MODE', 'eventlet'),
         logger=False,
         engineio_logger=False
     )
@@ -56,12 +62,15 @@ def create_app(config_name: str = None) -> Flask:
     from app.routes.forum import forum_bp
     from app.routes.admin import admin_bp
     from app.routes.public import public_bp
+    from app.routes.support import support_bp, admin_support_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(chatbot_bp)
     app.register_blueprint(forum_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(public_bp)
+    app.register_blueprint(support_bp)
+    app.register_blueprint(admin_support_bp)
 
     # Register socket events
     from app.events.socket_events import register_socket_events
@@ -84,5 +93,9 @@ def create_app(config_name: str = None) -> Flask:
     @app.route('/health')
     def health():
         return {'status': 'ok', 'app': 'StatistiKita'}, 200
+
+    @app.errorhandler(413)
+    def payload_too_large(_error):
+        return {'error': 'Ukuran request terlalu besar. Coba file PDF yang lebih kecil atau kompres dokumennya.'}, 413
 
     return app

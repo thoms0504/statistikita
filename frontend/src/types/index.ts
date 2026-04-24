@@ -34,6 +34,40 @@ export interface ChatMessage {
   created_at: string;
 }
 
+export interface SupportParticipant {
+  id: number;
+  nama_lengkap?: string | null;
+  username?: string | null;
+  role?: 'user' | 'admin';
+  avatar_url?: string | null;
+  email?: string | null;
+}
+
+export interface SupportMessage {
+  id: number;
+  conversation_id: number;
+  sender_id?: number | null;
+  sender_role: 'user' | 'admin';
+  content: string;
+  created_at: string;
+  sender?: SupportParticipant | null;
+}
+
+export interface SupportConversation {
+  id: number;
+  user_id: number;
+  status: 'open' | 'closed';
+  created_at: string;
+  updated_at: string;
+  last_message_at?: string | null;
+  admin_last_read_at?: string | null;
+  user_last_read_at?: string | null;
+  user?: SupportParticipant | null;
+  last_message?: SupportMessage | null;
+  unread_for_admin: number;
+  unread_for_user: number;
+}
+
 // Forum types
 export interface Tag {
   id: number;

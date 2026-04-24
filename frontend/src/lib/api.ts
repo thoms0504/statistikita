@@ -63,6 +63,13 @@ export const chatAPI = {
     api.delete(`/api/chat/sessions/${sessionId}`),
 };
 
+export const supportAPI = {
+  getConversation: () => api.get('/api/support/conversation'),
+  sendMessage: (content: string) =>
+    api.post('/api/support/conversation/messages', { content }),
+  markConversationRead: () => api.patch('/api/support/conversation/read'),
+};
+
 // ─── Forum ───────────────────────────────────────────────
 export const forumAPI = {
   getPosts: (params?: { page?: number; per_page?: number; search?: string; tag?: string }) =>
@@ -98,6 +105,17 @@ export const adminAPI = {
   getChatbotStats: () => api.get('/api/admin/chatbot/stats'),
   getChatbotQuestions: (params?: object) => api.get('/api/admin/chatbot/questions', { params }),
   deleteChatMessage: (id: number) => api.delete(`/api/admin/chatbot/questions/${id}`),
+  // Support chat
+  getSupportConversations: (params?: { status?: string; search?: string }) =>
+    api.get('/api/admin/support/conversations', { params }),
+  getSupportMessages: (conversationId: number) =>
+    api.get(`/api/admin/support/conversations/${conversationId}/messages`),
+  sendSupportReply: (conversationId: number, content: string) =>
+    api.post(`/api/admin/support/conversations/${conversationId}/messages`, { content }),
+  markSupportConversationRead: (conversationId: number) =>
+    api.patch(`/api/admin/support/conversations/${conversationId}/read`),
+  updateSupportConversationStatus: (conversationId: number, status: 'open' | 'closed') =>
+    api.patch(`/api/admin/support/conversations/${conversationId}/status`, { status }),
   // Forum analytics
   getForumStats: () => api.get('/api/admin/forum/stats'),
   getAdminPosts: (params?: object) => api.get('/api/admin/forum/posts', { params }),
