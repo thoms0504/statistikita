@@ -1,10 +1,10 @@
-from datetime import datetime
 from flask import Blueprint, current_app, jsonify, request
 from sqlalchemy.orm import joinedload
 from app.models import db
 from app.models.support import SupportConversation, SupportMessage
 from app.models.user import User
 from app.services.notification_service import emit_event, emit_room_event
+from app.utils.time_helper import jakarta_now
 from app.utils.jwt_helper import admin_required, jwt_required
 
 support_bp = Blueprint('support', __name__, url_prefix='/api/support')
@@ -112,7 +112,7 @@ def send_support_message():
     if err:
         return jsonify({'error': err}), 400
 
-    now = datetime.utcnow()
+    now = jakarta_now()
     conversation = _open_conversation_for_user(request.current_user.id)
     if not conversation:
         conversation = SupportConversation(
@@ -156,7 +156,7 @@ def mark_my_conversation_read():
     if not conversation:
         return jsonify({'conversation': None}), 200
 
-    conversation.user_last_read_at = datetime.utcnow()
+    conversation.user_last_read_at = jakarta_now()
     db.session.commit()
     _emit_conversation_update(conversation)
 
@@ -211,7 +211,7 @@ def reply_support_conversation(conversation_id: int):
         return jsonify({'error': err}), 400
 
     conversation = SupportConversation.query.options(joinedload(SupportConversation.user)).get_or_404(conversation_id)
-    now = datetime.utcnow()
+    now = jakarta_now()
 
     message = SupportMessage(
         conversation_id=conversation.id,
@@ -239,7 +239,7 @@ def reply_support_conversation(conversation_id: int):
 @admin_required
 def mark_support_conversation_read(conversation_id: int):
     conversation = SupportConversation.query.options(joinedload(SupportConversation.user)).get_or_404(conversation_id)
-    conversation.admin_last_read_at = datetime.utcnow()
+    conversation.admin_last_read_at = jakarta_now()
     db.session.commit()
     _emit_conversation_update(conversation)
     return jsonify({'conversation': _conversation_payload(conversation)}), 200
@@ -254,7 +254,7 @@ def update_support_conversation_status(conversation_id: int):
 
     conversation = SupportConversation.query.options(joinedload(SupportConversation.user)).get_or_404(conversation_id)
     conversation.status = status
-    conversation.updated_at = datetime.utcnow()
+    conversation.updated_at = jakarta_now()
     if status == 'closed':
         conversation.admin_last_read_at = conversation.updated_at
     db.session.commit()

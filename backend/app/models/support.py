@@ -1,5 +1,5 @@
-from datetime import datetime
 from . import db
+from app.utils.time_helper import jakarta_now
 
 
 class SupportConversation(db.Model):
@@ -8,9 +8,9 @@ class SupportConversation(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
     status = db.Column(db.Enum('open', 'closed'), nullable=False, default='open', index=True)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, index=True)
-    last_message_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=jakarta_now, index=True)
+    updated_at = db.Column(db.DateTime, default=jakarta_now, onupdate=jakarta_now, index=True)
+    last_message_at = db.Column(db.DateTime, default=jakarta_now, index=True)
     admin_last_read_at = db.Column(db.DateTime, nullable=True)
     user_last_read_at = db.Column(db.DateTime, nullable=True)
 
@@ -51,7 +51,7 @@ class SupportMessage(db.Model):
     sender_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='SET NULL'), nullable=True, index=True)
     sender_role = db.Column(db.Enum('user', 'admin'), nullable=False, index=True)
     content = db.Column(db.Text, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    created_at = db.Column(db.DateTime, default=jakarta_now, index=True)
 
     sender = db.relationship('User', backref=db.backref('support_messages', lazy='dynamic'))
 
