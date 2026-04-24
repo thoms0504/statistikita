@@ -100,6 +100,33 @@ def test_admin_can_read_flat_support_chat_log(client, db, user_token, admin_toke
     assert 'dikirim_pada' in message
 
 
+def test_admin_can_fetch_support_stats(client, db, user_token, admin_token):
+    client.post(
+        '/api/support/conversation/messages',
+        json={'content': 'Halo admin, saya butuh bantuan data.'},
+        headers={'Authorization': f'Bearer {user_token}'}
+    )
+
+    resp = client.get(
+        '/api/admin/support/stats',
+        headers={'Authorization': f'Bearer {admin_token}'}
+    )
+
+    assert resp.status_code == 200
+    data = resp.get_json()
+    assert data['total_conversations'] == 1
+    assert data['open_conversations'] == 1
+    assert data['closed_conversations'] == 0
+    assert data['total_messages'] == 1
+    assert data['user_messages'] == 1
+    assert data['admin_messages'] == 0
+    assert data['unread_for_admin'] == 1
+    assert data['conversations_per_day'][0]['count'] == 1
+    assert data['messages_per_day'][0]['count'] == 1
+    assert data['status_distribution'][0] == {'name': 'Aktif', 'count': 1}
+    assert len(data['top_words']) > 0
+
+
 def test_pdf_limit_has_headroom_for_multipart(app):
     assert app.config['MAX_PDF_SIZE'] == 20 * 1024 * 1024
     assert app.config['MAX_CONTENT_LENGTH'] > app.config['MAX_PDF_SIZE']

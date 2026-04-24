@@ -8,6 +8,11 @@ import {
 import cloud from 'd3-cloud';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#0ea5e9', '#8b5cf6', '#f97316'];
+const chartText = 'var(--chart-text)';
+const chartMuted = 'var(--chart-muted)';
+const chartGrid = 'var(--chart-grid)';
+const chartTooltipBg = 'var(--chart-tooltip-bg)';
+const chartBorder = 'var(--chart-border)';
 
 // ─── Bar Chart ───────────────────────────────────────────────
 interface BarChartProps {
@@ -22,10 +27,10 @@ export function AdminBarChart({ data, title, xKey = 'date' }: BarChartProps) {
       <h3 className="font-semibold text-gray-800 mb-4 text-sm">{title}</h3>
       <ResponsiveContainer width="100%" height={200}>
         <BarChart data={data} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: chartMuted }} axisLine={{ stroke: chartGrid }} tickLine={{ stroke: chartGrid }} />
+          <YAxis tick={{ fontSize: 11, fill: chartMuted }} axisLine={{ stroke: chartGrid }} tickLine={{ stroke: chartGrid }} allowDecimals={false} />
+          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${chartBorder}`, backgroundColor: chartTooltipBg, color: chartText }} />
           <Bar dataKey="count" fill="#2563eb" radius={[4, 4, 0, 0]} />
         </BarChart>
       </ResponsiveContainer>
@@ -58,7 +63,7 @@ export function AdminPieChart({ data, title }: PieChartProps) {
               <Cell key={index} fill={COLORS[index % COLORS.length]} />
             ))}
           </Pie>
-          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8 }} />
+          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${chartBorder}`, backgroundColor: chartTooltipBg, color: chartText }} />
         </PieChart>
       </ResponsiveContainer>
     </div>
@@ -80,11 +85,11 @@ export function AdminLineChart({ data, title, xKey = 'date', height = 220, lines
       <h3 className="font-semibold text-gray-800 mb-4 text-sm">{title}</h3>
       <ResponsiveContainer width="100%" height={height}>
         <LineChart data={data} margin={{ top: 0, right: 10, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-          <XAxis dataKey={xKey} tick={{ fontSize: 11 }} />
-          <YAxis tick={{ fontSize: 11 }} allowDecimals={false} />
-          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: '1px solid #e5e7eb' }} />
-          <Legend wrapperStyle={{ fontSize: 11 }} />
+          <CartesianGrid strokeDasharray="3 3" stroke={chartGrid} />
+          <XAxis dataKey={xKey} tick={{ fontSize: 11, fill: chartMuted }} axisLine={{ stroke: chartGrid }} tickLine={{ stroke: chartGrid }} />
+          <YAxis tick={{ fontSize: 11, fill: chartMuted }} axisLine={{ stroke: chartGrid }} tickLine={{ stroke: chartGrid }} allowDecimals={false} />
+          <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${chartBorder}`, backgroundColor: chartTooltipBg, color: chartText }} />
+          <Legend wrapperStyle={{ fontSize: 11, color: chartMuted }} />
           {lines.map((line) => (
             <Line
               key={line.key}

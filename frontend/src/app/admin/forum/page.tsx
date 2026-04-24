@@ -24,12 +24,11 @@ export default function AdminForumDashboard() {
 
   return (
     <div>
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-emerald-600 via-emerald-700 to-slate-900 text-white p-6 mb-6">
-        <div className="absolute -top-12 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+      <div className="admin-hero admin-hero-forum relative overflow-hidden rounded-2xl text-white p-6 mb-6">
         <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold">Dashboard Forum</h1>
-            <p className="text-emerald-100 text-sm mt-1">Analitik diskusi, tag, dan tren jawaban</p>
+            <p className="text-white/80 text-sm mt-1">Analitik diskusi, tag, dan tren jawaban</p>
           </div>
           <Link href="/admin/forum/questions" className="text-sm inline-flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors">
             <List className="w-4 h-4" /> Kelola Postingan

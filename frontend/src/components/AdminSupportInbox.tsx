@@ -198,23 +198,22 @@ export default function AdminSupportInbox() {
 
   return (
     <div className="space-y-6">
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-emerald-700 via-teal-700 to-slate-900 p-6 text-white">
-        <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-white/10 blur-2xl" />
+      <section className="admin-hero admin-hero-support relative overflow-hidden rounded-2xl p-6 text-white">
         <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <p className="text-sm font-semibold text-emerald-100">Realtime Support Inbox</p>
+            <p className="text-sm font-semibold text-white/75">Realtime Support Inbox</p>
             <h1 className="mt-1 text-2xl font-bold">Chat User ke Admin</h1>
-            <p className="mt-1 text-sm text-emerald-100">
+            <p className="mt-1 text-sm text-white/80">
               Tanggapi bantuan langsung dari pengguna tanpa keluar dari panel admin.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div className="rounded-2xl bg-white/10 px-4 py-3">
-              <p className="text-emerald-100">Total Percakapan</p>
+              <p className="text-white/75">Total Percakapan</p>
               <p className="mt-1 text-xl font-bold">{conversations.length}</p>
             </div>
             <div className="rounded-2xl bg-white/10 px-4 py-3">
-              <p className="text-emerald-100">Belum Dibaca</p>
+              <p className="text-white/75">Belum Dibaca</p>
               <p className="mt-1 text-xl font-bold">
                 {conversations.reduce((sum, conversation) => sum + conversation.unread_for_admin, 0)}
               </p>

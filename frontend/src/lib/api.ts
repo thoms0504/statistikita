@@ -106,6 +106,7 @@ export const adminAPI = {
   getChatbotQuestions: (params?: object) => api.get('/api/admin/chatbot/questions', { params }),
   deleteChatMessage: (id: number) => api.delete(`/api/admin/chatbot/questions/${id}`),
   // Support chat
+  getSupportStats: () => api.get('/api/admin/support/stats'),
   getSupportConversations: (params?: { status?: string; search?: string }) =>
     api.get('/api/admin/support/conversations', { params }),
   getSupportMessages: (conversationId: number) =>

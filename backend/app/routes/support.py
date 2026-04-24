@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from flask import Blueprint, current_app, jsonify, request
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 from app.models import db
 from app.models.support import SupportConversation, SupportMessage
@@ -6,9 +9,12 @@ from app.models.user import User
 from app.services.notification_service import emit_event, emit_room_event
 from app.utils.time_helper import jakarta_now
 from app.utils.jwt_helper import admin_required, jwt_required
+from app.utils.text_stats import extract_top_words
 
 support_bp = Blueprint('support', __name__, url_prefix='/api/support')
 admin_support_bp = Blueprint('admin_support', __name__, url_prefix='/api/admin/support')
+
+MAX_STATS_SAMPLE = 2000
 
 
 def _serialize_user(user: User | None):
@@ -186,6 +192,72 @@ def list_support_conversations():
 
     return jsonify({
         'conversations': [_conversation_payload(conversation) for conversation in conversations],
+    }), 200
+
+
+@admin_support_bp.route('/stats', methods=['GET'])
+@admin_required
+def support_stats():
+    total_conversations = SupportConversation.query.count()
+    open_conversations = SupportConversation.query.filter_by(status='open').count()
+    closed_conversations = SupportConversation.query.filter_by(status='closed').count()
+    total_messages = SupportMessage.query.count()
+    user_messages = SupportMessage.query.filter_by(sender_role='user').count()
+    admin_messages = SupportMessage.query.filter_by(sender_role='admin').count()
+
+    unread_for_admin = SupportMessage.query.join(SupportConversation).filter(
+        SupportMessage.sender_role == 'user',
+        SupportMessage.created_at > func.coalesce(
+            SupportConversation.admin_last_read_at,
+            SupportConversation.created_at,
+        ),
+    ).count()
+
+    thirty_days_ago = jakarta_now() - timedelta(days=30)
+    conversation_rows = db.session.query(
+        func.date(SupportConversation.created_at).label('date'),
+        func.count().label('count'),
+    ).filter(
+        SupportConversation.created_at >= thirty_days_ago,
+    ).group_by(func.date(SupportConversation.created_at)).order_by('date').all()
+
+    message_rows = db.session.query(
+        func.date(SupportMessage.created_at).label('date'),
+        func.count().label('count'),
+    ).filter(
+        SupportMessage.created_at >= thirty_days_ago,
+    ).group_by(func.date(SupportMessage.created_at)).order_by('date').all()
+
+    status_rows = db.session.query(
+        SupportConversation.status,
+        func.count().label('count'),
+    ).group_by(SupportConversation.status).all()
+    status_counts = {row.status: row.count for row in status_rows}
+
+    recent_user_messages = [
+        message.content for message in SupportMessage.query.filter_by(sender_role='user')
+        .order_by(SupportMessage.created_at.desc()).limit(MAX_STATS_SAMPLE).all()
+    ]
+
+    return jsonify({
+        'total_conversations': total_conversations,
+        'open_conversations': open_conversations,
+        'closed_conversations': closed_conversations,
+        'total_messages': total_messages,
+        'user_messages': user_messages,
+        'admin_messages': admin_messages,
+        'unread_for_admin': unread_for_admin,
+        'conversations_per_day': [
+            {'date': str(row.date), 'count': row.count} for row in conversation_rows
+        ],
+        'messages_per_day': [
+            {'date': str(row.date), 'count': row.count} for row in message_rows
+        ],
+        'status_distribution': [
+            {'name': 'Aktif', 'count': status_counts.get('open', 0)},
+            {'name': 'Ditutup', 'count': status_counts.get('closed', 0)},
+        ],
+        'top_words': extract_top_words(recent_user_messages),
     }), 200
 
 
